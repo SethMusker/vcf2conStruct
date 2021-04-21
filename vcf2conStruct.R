@@ -2,15 +2,19 @@
 require(vcfR)
 require(adegenet)
 require(fields)
-require(miscTools)
 require(dplyr)
 require(argparser)
 
-p <- arg_parser("convert VCF to conStruct",hide.opts = T)
+p <- arg_parser("convert VCF to conStruct. Outputs <outname>.RData file. \n
+                To load into R for conStruct analysis use load('<outname>.RData').\n
+                The object will be named conStruct_object \n\n
+                Resuires the following packages: vcfR, adegenet, fields, dplyr, argparser.\n
+                Run using Rscript, e.g.\n
+                Rscript vcf2conStruct.R --vcf my_file.vcf.gz --metadatafile my_meta.txt --outname my_conStruct",hide.opts = T)
 
 # Add a positional argument
 p <- add_argument(p, "--vcf", help="vcf file")
-p <- add_argument(p, "--metadatafile", help="N iterations")
+p <- add_argument(p, "--metadatafile", help="file with *no header* with columns in this order: 'sample population longitude latitude'")
 p <- add_argument(p, "--outname", help="<name of output>.RData")
 
 # functions
