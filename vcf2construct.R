@@ -1,0 +1,74 @@
+
+require(vcfR)
+require(adegenet)
+require(fields)
+require(miscTools)
+require(dplyr)
+require(argparser)
+
+p <- arg_parser("convert VCF to conStruct",hide.opts = T)
+
+# Add a positional argument
+p <- add_argument(p, "--vcf", help="vcf file")
+p <- add_argument(p, "--metadatafile", help="N iterations")
+p <- add_argument(p, "--outname", help="<name of output>.RData")
+
+# functions
+vcf2gi<-function(vcf,metadatafile){
+  ## metadatafile must be 'sample pop long lat'
+  g<-vcfR2genind(read.vcfR(vcf))
+  meta<-read.table(metadatafile,header=F)
+  names(meta)<-c("sample","pop","longitude","latitide")
+  g2<-g[indNames(g)%in%meta$sample,]
+  i<-data.frame(sample=indNames(g2))
+  mystrata<-left_join(i,meta,by="sample")
+  pop(g2)<-mystrata$pop
+  strata(g2)<-mystrata
+  g2@other$latlong<-mystrata[,c("longitude","latitide")]
+  return(g2)
+}
+
+genind2conStruct<-function(genind){
+  df<-as.matrix(genind2df(genind))
+  df[is.na(df)]<-"-9"
+  df[df=="00"]<-0
+  df[df=="01"|df=="10"]<-0.5
+  df[df=="11"]<-1
+  df[df=="-9"]<-NA
+  conStruct.manual<-as.data.frame(df)
+  conStruct.data<-list(allele.frequencies=apply(as.matrix(conStruct.manual[,-1]),2,as.numeric))
+  rownames(conStruct.data$allele.frequencies)<-rownames(df)
+  conStruct.data$coords<-as.matrix(genind@other$latlong)
+  conStruct.data$geoDist<-as.matrix(rdist.earth(conStruct.data$coords,miles=F))
+  return(conStruct.data)
+}
+
+vcf2conStruct<-function(vcf,metadatafile,outname){
+  conStruct_object<-genind2conStruct(vcf2gi(vcf,metadatafile))
+  save(conStruct_object,file=paste(outname,".RData",sep=""))
+}
+
+# parse
+args<-parse_args(p)
+if(length(args)<3) {
+  # Print the help message
+  print(p)
+}else{
+  vcf2conStruct(args$vcf,args$metadatafile,args$outname)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
