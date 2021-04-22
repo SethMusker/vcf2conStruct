@@ -1,4 +1,4 @@
-# vcf2conStruct.R
+# vcf2conStruct
 R script to convert VCF format biallelic SNP data to the format required for the conStruct R package (https://github.com/gbradburd/conStruct)
 
 usage example: ```Rscript vcf2conStruct.R --vcf my_file.vcf.gz --metadatafile my_meta.txt --outname my_conStruct```
