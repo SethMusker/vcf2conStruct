@@ -18,12 +18,12 @@ vcf2conStruct<-function(vcf,metadatafile,outname){
   v2<-v[,c(1,which(colnames(v@gt)%in%meta$sample))]
   af<-direct.vcf2af(v2)
   i<-data.frame(sample=as.factor(rownames(af)))
-  mystrata<-left_join(meta,i,by="sample")
+  mystrata<-left_join(i,meta,by="sample")
   names(mystrata)
   conStruct_object<-list(allele.frequencies=af,
                          coords=mystrata[,c("longitude","latitude")],
                          geoDist=as.matrix(
-                           rdist.earth(mystrata[,c("longitude","latitude")],miles=F)
+                         rdist.earth(mystrata[,c("longitude","latitude")],miles=F)
                          )
   )
   save(conStruct_object,file=paste(outname,".RData",sep=""))
