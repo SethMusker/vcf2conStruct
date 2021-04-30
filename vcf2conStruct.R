@@ -1,37 +1,31 @@
 
-
-# functions
-vcf2gi<-function(vcf,metadatafile){
-  ## metadatafile must be 'sample pop long lat'
-  g<-vcfR2genind(read.vcfR(vcf))
-  meta<-read.table(metadatafile,header=F)
-  names(meta)<-c("sample","pop","longitude","latitide")
-  g2<-g[indNames(g)%in%meta$sample,]
-  i<-data.frame(sample=indNames(g2))
-  mystrata<-left_join(i,meta,by="sample")
-  pop(g2)<-mystrata$pop
-  strata(g2)<-mystrata
-  g2@other$latlong<-mystrata[,c("longitude","latitide")]
-  return(g2)
-}
-
-genind2conStruct<-function(genind){
-  df<-as.matrix(genind2df(genind))
-  df[is.na(df)]<-"-9"
-  df[df=="00"]<-0
-  df[df=="01"|df=="10"]<-0.5
-  df[df=="11"]<-1
-  df[df=="-9"]<-NA
-  conStruct.manual<-as.data.frame(df)
-  conStruct.data<-list(allele.frequencies=apply(as.matrix(conStruct.manual[,-1]),2,as.numeric))
-  rownames(conStruct.data$allele.frequencies)<-rownames(df)
-  conStruct.data$coords<-as.matrix(genind@other$latlong)
-  conStruct.data$geoDist<-as.matrix(rdist.earth(conStruct.data$coords,miles=F))
-  return(conStruct.data)
+direct.vcf2af<-function(input){
+  x<-input@gt[,-1]
+  x[grep("0/0",x)]<-0
+  x[grep("0/1",x)]<-0.5
+  x[grep("1/0",x)]<-0.5
+  x[grep("1/1",x)]<-1
+  x[grep(".:.:.",x)]<-NA
+  x<-apply(x,2,as.numeric)
+  rownames(x)<-input@fix[,"ID"]
+  return(t(x))
 }
 
 vcf2conStruct<-function(vcf,metadatafile,outname){
-  conStruct_object<-genind2conStruct(vcf2gi(vcf,metadatafile))
+  v<-read.vcfR(vcf)
+  meta<-read.table(metadatafile,header=F)
+  names(meta)<-c("sample","pop","longitude","latitude")
+  v2<-v[,c(1,which(colnames(v@gt)%in%meta$sample))]
+  af<-direct.vcf2af(v2)
+  i<-data.frame(sample=as.factor(rownames(af)))
+  mystrata<-left_join(i,meta,by="sample")
+  names(mystrata)
+  conStruct_object<-list(allele.frequencies=af,
+                         coords=mystrata[,c("longitude","latitude")],
+                         geoDist=as.matrix(
+                         rdist.earth(mystrata[,c("longitude","latitude")],miles=F)
+                         )
+  )
   save(conStruct_object,file=paste(outname,".RData",sep=""))
 }
 
@@ -58,7 +52,6 @@ if(anyNA(c(args$vcf,args$metadatafile,args$outname))) {
   print(p)
 }else{
   require(vcfR)
-  require(adegenet)
   require(fields)
   require(dplyr)
   vcf2conStruct(args$vcf,args$metadatafile,args$outname)
